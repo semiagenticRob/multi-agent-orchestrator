@@ -1,6 +1,6 @@
 ---
-description: 100 Reps orchestrator. Subcommands: new "<idea>" | resume <rep-id> | status [rep-id] | kill <rep-id> <reason>
-argument-hint: <new|resume|status|kill> [args]
+description: 100 Reps orchestrator. Subcommands: new "<idea>" | adopt <rep-id> [path] | resume <rep-id> | status [rep-id] | kill <rep-id> <reason>
+argument-hint: <new|adopt|resume|status|kill> [args]
 ---
 
 You are about to act as the **orchestrator core** for the 100 Reps multi-agent orchestrator. Your job is to drive a single rep through the gated lifecycle (scope → design → build → test → deploy), invoking phase agents and gate reviewers as a coordinator — not doing their work yourself.
@@ -11,7 +11,8 @@ Arguments: `$ARGUMENTS`
 
 Parse the first word of `$ARGUMENTS` as the subcommand:
 
-- `new "<idea>"` → run **new-rep flow** (below)
+- `new "<idea>"` → run **new-rep flow** (creates a brand-new rep folder)
+- `adopt <rep-id> [path]` → run **adopt flow** (onboards an existing repo into the orchestrator)
 - `resume <rep-id>` → run **resume flow**
 - `status [rep-id]` → run **status flow** (read-only)
 - `kill <rep-id> <reason>` → run **kill flow**
@@ -42,6 +43,25 @@ User invocation: `/rep new "<one-line idea>"`
    - Create `.orchestrator/{scope,design,build,test,deploy}/reviews` directory tree.
    - Write `.orchestrator/status.yml` from `templates/status.yml.tmpl` with the rep id, title, and timestamps.
 3. **Enter the scope phase.** Jump to **Phase Loop** with `phase: scope`.
+
+---
+
+## adopt flow
+
+User invocation: `/rep adopt <rep-id> [path]`
+
+Use when a repo already exists (cloned, possibly with code) and you want to bring it under the orchestrator. Differs from `new` in that you do NOT create the directory or its initial commit — you onboard what's already there.
+
+1. Resolve `path`:
+   - If supplied, use it.
+   - If not, default to `~/<rep-id>` then `~/<rep-id-without-rep--prefix>` and ask via AskUserQuestion if neither exists.
+2. Confirm the path is a git repo. If not, ask whether to `git init` it first.
+3. Ask via AskUserQuestion for the rep title (the slug from the repo name is the suggested default).
+4. Create `<path>/.orchestrator/{scope,design,build,test,deploy}/reviews` directories.
+5. Write `.orchestrator/status.yml` from `templates/status.yml.tmpl` with id, title, timestamps. **Do NOT make an initial commit on the rep repo** — the user may have prior work or intentional uncommitted state. Leave staging to them.
+6. Inform the user that adoption is complete and the rep enters the scope phase next. Jump to **Phase Loop** with `phase: scope`.
+
+The scope interview that follows is identical to `new`. The scoping-agent doesn't care whether the rep was freshly created or adopted.
 
 ---
 
@@ -116,7 +136,11 @@ Once the phase agent has produced its artifact, run the gate.
    - **Approve** → mark gate result `approved`, advance to the next phase
    - **Revise** → mark gate result `revise`, ask user for specific guidance, loop the phase agent with that guidance (counts against the iteration cap)
    - **Abort** → mark gate result `aborted`, transition to `kill flow`
-5. On approve: update `status.yml.gates.<phase>` with `{ result: approved, at: <timestamp> }`, advance `status.yml.phase` to the next phase, then dispatch `registry-sync-agent`.
+5. On approve: update `status.yml.gates.<phase>` with `{ result: <result>, at: <timestamp> }`, advance `status.yml.phase` to the next phase, then dispatch `registry-sync-agent`. The `result` value is one of:
+   - `approved` — synthesizer recommended approve, user approved
+   - `approved-with-noted-concerns` — synthesizer flagged concerns but user approved anyway; the concerns are preserved in the registry as future-context for retros and cross-rep learnings
+   - `revise` — user sent it back for another iteration (the gate then re-fires after the phase loop runs again)
+   - `aborted` — user killed the rep at this gate
 
 ### Step 3 — Advance
 

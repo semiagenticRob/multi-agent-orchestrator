@@ -40,8 +40,10 @@ Pluggable interface so v2 can swap gate backends without changing phase agents.
 Interface contract:
 
 ```
-present_gate(phase, artifact_path, review_packet) -> { approved | revise(feedback) | abort }
+present_gate(phase, artifact_path, review_packet) -> { approved | approved-with-noted-concerns | revise(feedback) | aborted }
 ```
+
+`approved-with-noted-concerns` exists because the synthesizer is allowed to land on "concerns — user decides" (per its rules) and the user is allowed to approve anyway. Preserving that nuance in the registry means future retros and cross-rep searches can answer "which approved gates carried unresolved concerns going in?" without losing data.
 
 **v1 backend (the only one implemented):** interactive in-session. The `/rep` command reads `gate-review.md` and surfaces an AskUserQuestion-style prompt with three options.
 
