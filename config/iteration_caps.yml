@@ -1,0 +1,16 @@
+# Per-phase iteration caps for the orchestrator's internal loops.
+#
+# When a phase hits its cap, the orchestrator NEVER silently fails — it
+# surfaces a "cap reached" gate to the user with three choices:
+#   1. approve as-is
+#   2. revise with explicit human guidance
+#   3. kill the rep
+#
+# Tune these after the first few real reps; the values below are the
+# starting defaults agreed during initial design.
+
+scope:  2   # interview -> draft -> one revision max. If still wrong, you need a new conversation, not another loop.
+design: 3   # design-agent can legitimately need 2 passes after verifier feedback.
+build:  5   # planner-executor-verifier doing real work. Generous without being open-ended.
+test:   3   # re-entries from test back to build. Beyond this it's a design problem, not a code problem.
+deploy: 2   # if deploy fails twice, surface for manual intervention.

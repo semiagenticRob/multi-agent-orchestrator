@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Local-only Claude Code state, if any leaks in
+.claude/settings.local.json

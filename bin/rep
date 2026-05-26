@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# rep — CLI entry point for the 100 Reps orchestrator.
+#
+# Both the Claude Code `/rep` slash command and this CLI call the same
+# orchestrator core (the slash command markdown at .claude/commands/rep.md).
+# This script is the path for nanoclaw and other non-interactive callers.
+#
+# Usage:
+#   rep new "<idea>"
+#   rep resume <rep-id>
+#   rep status [rep-id]
+#   rep kill <rep-id> <reason>
+
+set -euo pipefail
+
+# Locate the orchestrator repo so claude -p runs in its working directory.
+# Resolve via the symlink-safe parent of this script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ORCHESTRATOR_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [[ $# -lt 1 ]]; then
+  cat <<'USAGE'
+Usage:
+  rep new "<idea>"
+  rep resume <rep-id>
+  rep status [rep-id]
+  rep kill <rep-id> <reason>
+USAGE
+  exit 1
+fi
+
+# Forward all args to the slash command. Claude Code's non-interactive mode
+# (`claude -p`) accepts a prompt; we invoke the /rep command directly.
+PROMPT="/rep $*"
+
+# nanoclaw integration:
+# If $NANOCLAW_BIN is set, prefer it over `claude` so nanoclaw owns the runtime.
+# Otherwise fall back to the user's installed `claude` CLI.
+if [[ -n "${NANOCLAW_BIN:-}" && -x "${NANOCLAW_BIN}" ]]; then
+  exec "$NANOCLAW_BIN" --cwd "$ORCHESTRATOR_DIR" --prompt "$PROMPT"
+elif command -v claude >/dev/null 2>&1; then
+  cd "$ORCHESTRATOR_DIR"
+  exec claude -p "$PROMPT"
+else
+  echo "rep: neither nanoclaw (\$NANOCLAW_BIN) nor 'claude' is available on PATH." >&2
+  exit 127
+fi

@@ -1,0 +1,23 @@
+# Deploy Manifest — {{title}}
+
+## Target detection
+```yaml
+candidates:
+  - target: {{...}}
+    confidence: {{high|medium|low}}
+    evidence: "{{...}}"
+selected: {{...}}
+fallback: manual-checklist
+```
+
+## Deploy result
+- Status: {{deployed | failed | manual-required}}
+- URL / identifier: {{live URL, app store ID, daemon host, etc.}}
+- Deployed at: {{timestamp}}
+- Build/deploy command: `{{...}}`
+
+## Rollback procedure
+{{exact steps to undo this deploy. If none exists, say so explicitly.}}
+
+## Manual follow-ups
+{{things humans still have to do — App Store submission, DNS, hardware install, etc.}}

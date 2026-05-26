@@ -1,0 +1,10 @@
+# Central reps-registry repo for cross-rep visibility.
+# The orchestrator pushes a one-way mirror of .orchestrator/ here after
+# every gate approval. The registry's git log itself is the audit trail.
+
+repo: semiagenticRob/reps-registry
+clone_path: ~/reps-registry
+commit_message_format: "sync: rep-{id} {phase} {result}"
+sync_on:
+  - gate_approved
+  - rep_killed
